@@ -1,0 +1,6 @@
+
+		begin
+      f = addfile("/mnt/sdc/xy/data_op/gan/soca-gan/srgan/grace_025.nc","r")
+      print(f)
+		end
+    
