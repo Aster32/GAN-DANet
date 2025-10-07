@@ -1,19 +1,14 @@
-__pycache__/
-*.pyc
-.env
-.DS_Store
-*.pyo
-*.nc
-*.npy
-*.h5
-*.pdf
-*.png
-*.deb
-*.run
-*.png
-*.csv
-*.xlsx
-*.zip
-*.gz
-*.tar.gz
-*.pth
+*
+
+# allow directories so Git can traverse into them
+!*/
+
+# keep only code & notebooks
+!*.py
+!*.ipynb
+
+# (optional) keep these small metadata files
+!.gitignore
+!README.md
+!LICENSE
+!requirements.txt
