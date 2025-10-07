@@ -13,3 +13,7 @@ __pycache__/
 *.png
 *.csv
 *.xlsx
+*.zip
+*.gz
+*.tar.gz
+*.pth
