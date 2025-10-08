@@ -18,7 +18,7 @@ from pathlib import Path
 PROJECT_DIR = Path(os.getenv("PROJECT_DIR", ".")).resolve()
 
 # DATA_DIR: your preexisting default for ERA5 (kept as-is)
-DATA_DIR = Path(os.getenv("DATA_DIR", "/media/xy/data_op/")).resolve()
+DATA_DIR = Path(os.getenv("DATA_DIR", "/mnt/sdc/xy/data_op")).resolve()
 
 # ERA5 subdirectory (kept default; overridable)
 ERA5_SUBDIR = os.getenv("ERA5_SUBDIR", "ERA5/11")

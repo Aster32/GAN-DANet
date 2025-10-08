@@ -6,7 +6,10 @@
 # keep only code & notebooks
 !*.py
 !*.ipynb
-
+!*.npz
+!*.txt
+!*.joblib
+!*.yml
 # (optional) keep these small metadata files
 !.gitignore
 !README.md
