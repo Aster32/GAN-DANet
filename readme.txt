@@ -134,7 +134,7 @@ This lets you execute both notebooks without large downloads.
 
 ## License & Citation
 
-- **License:** _[MIT / Apache-2.0 / BSD-3 — choose one and state here]_
+- **License:** MIT License (see `LICENSE` for details)
 - **Citation:** Please cite the manuscript once published and the GRACE/GRACE-FO CSR Mascon products as appropriate.
 
 ---
