@@ -1,0 +1,17 @@
+*
+
+# allow directories so Git can traverse into them
+!*/
+
+# keep only code & notebooks
+!*.py
+!*.ipynb
+!*.npz
+!*.txt
+!*.joblib
+!*.yml
+# (optional) keep these small metadata files
+!.gitignore
+!README.md
+!LICENSE
+!requirements.txt

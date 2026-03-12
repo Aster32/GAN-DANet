@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# Define the region of interest for the Tibetan Plateau
+region="65/110/25/42"
+
+# Set the projection - Mercator with sufficient width
+projection="M10i"
+
+# Set the output file name
+output="tibetan_plateau_basins"
+
+# Set cleaner page and frame style
+gmt set PS_MEDIA A2
+gmt set MAP_FRAME_TYPE plain
+gmt set MAP_GRID_PEN_PRIMARY 0.25p,black
+
+# Activate the conda base environment to use GeoPandas
+eval "$(conda shell.bash hook)"
+conda activate base
+
+# Extract basin centroids and adjust label positioning
+python3 <<EOF
+import geopandas as gpd
+gdf = gpd.read_file("Union/TP_basins.shp")
+
+# Adjust centroid positions slightly for overlapping labels
+offsets = {
+    "Amu Darya": (0.5, 0.3),
+    "Tarim": (-3.3, -0.3),
+    "Hexi Corridor": (0.3, 0.2),
+    "Qaidam": (0.5, -0.2),
+    "Yellow": (0.5, 0.3),
+    "Yangtze": (0.5, -0.3),
+    "Mekong": (-0.1, 0.7),
+    "Salween": (-1.1, 1.3),
+    "Brahmaputra": (-0.3, 0.3),
+    "Ganges": (-0.5, 0.2),
+    "Indus": (0.2, 0.3),
+    "Inner Plateau": (0, 0)
+}
+
+with open("basins_labels.txt", "w") as f:
+    for idx, row in gdf.iterrows():
+        centroid = row.geometry.centroid
+        name = row['BasinName']
+        dx, dy = offsets.get(name, (0, 0))  # Apply offsets if defined
+        f.write(f"{centroid.x + dx} {centroid.y + dy} {name}\n")
+EOF
+
+# Download and crop the elevation data
+gmt grdcut @earth_relief_01m -R$region -Grelief_data.nc
+
+# Get the robust elevation range using grdinfo -M
+min_elev=$(gmt grdinfo relief_data.nc -C | awk '{print $6}')
+max_elev=$(gmt grdinfo relief_data.nc -C | awk '{print $7}')
+min_elev=0
+# Print the detected min and max elevations for verification
+echo "Detected Minimum Elevation: ${min_elev} m, Maximum Elevation: ${max_elev} m"
+
+# Create an elegant colormap for the DEM
+gmt makecpt -Cdem2 -T${min_elev}/${max_elev}/100 -Z > elevation.cpt
+
+# Plot the base map with elevation shading
+gmt grdimage relief_data.nc -R$region -J$projection -Celevation.cpt -I+d -Xc -Yc -P -K > ${output}.ps
+# Add the basin boundaries in green
+gmt psxy Union/TP_basins.shp -R -J -W1p,black,4_6 -O -K >> ${output}.ps
+# Add the Tibetan Plateau boundary in red
+gmt psxy TP_Boundary/TP_boundary_line.shp -R -J -W1p,black -O -K >> ${output}.ps
+
+# Place basin names (refined positions)
+gmt pstext basins_labels.txt -R -J -F+f9p,Helvetica-Bold,black+jCM -O -K >> ${output}.ps
+
+# Add axis labels and minimal grid lines
+gmt psbasemap -R -J -Bxa5f5+l"Longitude" -Bya5f5+l"Latitude" -BWSen -O -K >> ${output}.ps
+
+# Create an elegant colormap for the DEM starting at 0
+gmt makecpt -Cdem2 -T0/${max_elev}/500 -Z > elevation.cpt
+
+# Add a small, clean elevation color bar below the map
+gmt psscale -R -J -Celevation.cpt -Dx0.25i/0.60i+w2.0i/0.15i+h -B2000+l"Elevation (m)" \
+   -F+p0.25p,black+gwhite -O -K >> ${output}.ps
+
+# Add a small scale bar directly below the color bar
+gmt psbasemap -R -J -Lx3.5i/0.3i+c35+w500k+f+u+l" " -O -K >> ${output}.ps
+
+# Corrected legend
+cat > legend.txt << EOF
+# Legend for GMT 6
+# Line styles
+S 0.25c - 0.5c black 1p,solid 0.8c TP boundary
+S 0.25c - 0.5c black 1p,dashed 0.8c Basin boundary
+EOF
+
+# Add the legend at the bottom-right corner
+# Generate the legend at the bottom-right corner
+gmt pslegend legend.txt -R65/110/25/42 -JX10i/5i -DjBR+w4.0c+o0.1c/0.1c -F+gwhite+p0.5p,black -O -K >> ${output}.ps
+
+# Finalize the PostScript file cleanly
+gmt psbasemap -R -J -O -B0 >> ${output}.ps
+
+# Convert to high-resolution PNG (final step)
+gmt psconvert ${output}.ps -A -Tg -E600 -P
+
+# Clean up temporary files
+rm elevation.cpt relief_data.nc elevation_range.txt basins_labels.txt
+conda deactivate

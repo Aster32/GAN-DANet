@@ -1,0 +1,12 @@
+seed: 42
+deterministic: true
+paths:
+  project_dir: .
+  data_dir: ./data_op
+  cache_dir: ./cache
+model:
+  input_channels: 40
+  growth_rate: 24
+  num_blocks: 3
+  num_layers_per_block: 4
+  attention_type: danet

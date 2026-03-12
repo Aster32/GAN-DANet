@@ -1,0 +1,31 @@
+seed: 42
+deterministic: true
+dataset:
+  window_size: 5
+  val_fraction: 0.2
+  batch_size: 2
+  static_channels: 3
+model:
+  name: HydroTWSADownscaler
+  aux_channels: 40
+  base_channels: 64
+  dropout: 0.1
+optimization:
+  learning_rate: 0.0002
+  weight_decay: 0.0001
+training:
+  epochs: 20
+  early_stopping_patience: 6
+  output_dir: outputs/hydro
+  initial_train_size: 72
+  validation_size: 12
+  step_size: 12
+loss:
+  reconstruction_weight: 1.0
+  ssim_weight: 0.15
+  conservation_weight: 0.35
+  gradient_weight: 0.2
+  uncertainty_weight: 0.05
+  anomaly_weight: 0.2
+  trend_weight: 0.2
+  tv_weight: 0.0001
