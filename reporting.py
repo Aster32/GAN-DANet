@@ -9,6 +9,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def _paired_valid_arrays(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    yt = np.asarray(y_true, dtype=np.float64).reshape(-1)
+    yp = np.asarray(y_pred, dtype=np.float64).reshape(-1)
+    valid = np.isfinite(yt) & np.isfinite(yp)
+    return yt[valid], yp[valid]
+
+
 def _load_csv(path: Path) -> List[Dict[str, str]]:
     lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     if not lines:
@@ -45,8 +52,9 @@ def metrics_csv_to_latex(metrics_csv: str, output_tex: str) -> None:
 
 
 def save_scatter_figure(y_true: np.ndarray, y_pred: np.ndarray, output_path: str, title: str) -> None:
-    yt = y_true.reshape(-1)
-    yp = y_pred.reshape(-1)
+    yt, yp = _paired_valid_arrays(y_true, y_pred)
+    if yt.size == 0:
+        return
 
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -65,7 +73,10 @@ def save_scatter_figure(y_true: np.ndarray, y_pred: np.ndarray, output_path: str
 
 
 def save_residual_hist(y_true: np.ndarray, y_pred: np.ndarray, output_path: str, title: str) -> None:
-    residual = (y_pred - y_true).reshape(-1)
+    yt, yp = _paired_valid_arrays(y_true, y_pred)
+    if yt.size == 0:
+        return
+    residual = yp - yt
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
 
@@ -99,10 +110,14 @@ def save_spatial_snapshot_figure(
         obs = yt
         pred = yp
 
+    valid = np.isfinite(obs) & np.isfinite(pred)
+    if not np.any(valid):
+        return
+
     residual = pred - obs
-    vmin = float(min(np.min(obs), np.min(pred)))
-    vmax = float(max(np.max(obs), np.max(pred)))
-    rmax = float(np.max(np.abs(residual)))
+    vmin = float(min(np.min(obs[valid]), np.min(pred[valid])))
+    vmax = float(max(np.max(obs[valid]), np.max(pred[valid])))
+    rmax = float(np.max(np.abs(residual[valid])))
 
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)

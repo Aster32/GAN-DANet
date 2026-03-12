@@ -75,7 +75,17 @@ The upgraded research path adds:
 - `models/losses.py`: conservation, gradient, uncertainty, and composite hydrology losses
 - `hydro_datasets.py`: temporal window datasets and dataloaders
 - `hydro_training.py`: synthetic checks, checkpointed fitting, prediction export, and rolling-origin experiments
+- `hydro_notebooks.py`: notebook-preserving train/test workflows for ensemble fitting, 0.25 deg inference, and 0.05 deg refinement
 - `hydro_experiment_config.yml`: baseline settings for the advanced model
+
+## Notebook entrypoints
+
+The original notebook front doors are preserved:
+
+- `GAN_DANet_train.ipynb`: now trains a two-member hydrology ensemble, preserving the original `model1`/`model2` logic for epistemic uncertainty.
+- `test.ipynb`: still runs the two-stage workflow, with Script 1 generating the 0.25 degree product and Script 2 producing the 0.05 degree refinement/export package.
+
+These notebooks now call `hydro_notebooks.py` so the user-facing workflow stays recognizable while the underlying method is substantially upgraded.
 
 ## Evaluation CLI
 

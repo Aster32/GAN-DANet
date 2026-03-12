@@ -515,6 +515,21 @@ def build_real_data_training_objects(
     return model, criterion, optimizer, (train_loader, val_loader, device)
 
 
+def load_hydro_checkpoint(
+    checkpoint_path: str,
+    device: Optional[str | torch.device] = None,
+) -> tuple[HydroTWSADownscaler, HydroTrainingConfig, Dict[str, Any]]:
+    resolved_device = torch.device(device) if device is not None else _resolve_device("cuda")
+    payload = torch.load(checkpoint_path, map_location=resolved_device)
+    config_dict = payload.get("config", {})
+    config = HydroTrainingConfig(**config_dict)
+    config.device = str(resolved_device)
+    model = build_hydro_model(config).to(resolved_device)
+    model.load_state_dict(payload["model_state_dict"])
+    model.eval()
+    return model, config, payload
+
+
 __all__ = [
     "HydroTrainingConfig",
     "build_hydro_model",
@@ -522,6 +537,7 @@ __all__ = [
     "compute_hydrology_loss",
     "evaluate_one_epoch",
     "fit_hydro_model",
+    "load_hydro_checkpoint",
     "load_hydro_config",
     "predict_loader",
     "run_hydro_smoke",

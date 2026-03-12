@@ -32,6 +32,18 @@ class RollingOriginFold:
     val_end: int
 
 
+@dataclass
+class HydrologyArrays:
+    lr_anomaly: np.ndarray
+    lr_trend: np.ndarray
+    hr_anomaly: np.ndarray
+    hr_trend: np.ndarray
+    hr_aux: np.ndarray
+    grace_scaler_05: object
+    grace_scaler_025: object
+    aux_scalers: list[object]
+
+
 class HydrologyWindowDataset(Dataset):
     """Temporal-window dataset for anomaly/trend-aware TWSA downscaling."""
 
@@ -173,7 +185,12 @@ def build_hydrology_splits(
     mask: Optional[np.ndarray] = None,
     static_channels: int = 3,
 ) -> HydrologySplit:
-    [lr_anomaly, trend05], [hr_anomaly, trend25], hr_aux, *_ = load_data()
+    arrays = load_hydrology_arrays()
+    lr_anomaly = arrays.lr_anomaly
+    trend05 = arrays.lr_trend
+    hr_anomaly = arrays.hr_anomaly
+    trend25 = arrays.hr_trend
+    hr_aux = arrays.hr_aux
 
     n = len(lr_anomaly)
     split_index = max(window_size, int(n * (1.0 - val_fraction)))
@@ -250,7 +267,12 @@ def build_rolling_origin_folds(
     mask: Optional[np.ndarray] = None,
     static_channels: int = 3,
 ) -> List[RollingOriginFold]:
-    [lr_anomaly, trend05], [hr_anomaly, trend25], hr_aux, *_ = load_data()
+    arrays = load_hydrology_arrays()
+    lr_anomaly = arrays.lr_anomaly
+    trend05 = arrays.lr_trend
+    hr_anomaly = arrays.hr_anomaly
+    trend25 = arrays.hr_trend
+    hr_aux = arrays.hr_aux
     n = len(lr_anomaly)
     folds: List[RollingOriginFold] = []
 
@@ -346,12 +368,72 @@ def build_rolling_origin_dataloaders(
     return outputs
 
 
+def load_hydrology_arrays() -> HydrologyArrays:
+    [lr_anomaly, trend05], [hr_anomaly, trend25], hr_aux, grace_scaler_05, grace_scaler_025, aux_scalers = load_data()
+    return HydrologyArrays(
+        lr_anomaly=lr_anomaly,
+        lr_trend=trend05,
+        hr_anomaly=hr_anomaly,
+        hr_trend=trend25,
+        hr_aux=hr_aux,
+        grace_scaler_05=grace_scaler_05,
+        grace_scaler_025=grace_scaler_025,
+        aux_scalers=aux_scalers,
+    )
+
+
+def build_full_hydrology_dataset(
+    window_size: int = 5,
+    mask: Optional[np.ndarray] = None,
+    static_channels: int = 3,
+) -> tuple[HydrologyWindowDataset, int, HydrologyArrays]:
+    arrays = load_hydrology_arrays()
+    dataset = HydrologyWindowDataset(
+        lr_anomaly=arrays.lr_anomaly,
+        hr_anomaly=arrays.hr_anomaly,
+        hr_aux=arrays.hr_aux,
+        lr_trend=arrays.lr_trend,
+        hr_trend=arrays.hr_trend,
+        mask=mask,
+        window_size=window_size,
+        augment=False,
+        static_channels=static_channels,
+        valid_indices=np.arange(len(arrays.lr_anomaly)),
+        context_max_index=len(arrays.lr_anomaly) - 1,
+    )
+    return dataset, arrays.hr_aux.shape[-1], arrays
+
+
+def build_full_hydrology_dataloader(
+    batch_size: int = 4,
+    window_size: int = 5,
+    num_workers: int = 0,
+    static_channels: int = 3,
+) -> tuple[DataLoader, int, HydrologyArrays]:
+    dataset, aux_channels, arrays = build_full_hydrology_dataset(
+        window_size=window_size,
+        static_channels=static_channels,
+    )
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        worker_init_fn=worker_init_fn,
+    )
+    return loader, aux_channels, arrays
+
+
 __all__ = [
+    "HydrologyArrays",
     "HydrologySplit",
     "RollingOriginFold",
     "HydrologyWindowDataset",
+    "build_full_hydrology_dataset",
+    "build_full_hydrology_dataloader",
     "build_hydrology_splits",
     "build_hydrology_dataloaders",
     "build_rolling_origin_folds",
     "build_rolling_origin_dataloaders",
+    "load_hydrology_arrays",
 ]

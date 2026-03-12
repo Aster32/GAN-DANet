@@ -9,18 +9,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def _paired_valid_arrays(*arrays: np.ndarray) -> list[np.ndarray]:
+    flattened = [np.asarray(array, dtype=np.float64).reshape(-1) for array in arrays]
+    valid = np.ones_like(flattened[0], dtype=bool)
+    for array in flattened:
+        valid &= np.isfinite(array)
+    return [array[valid] for array in flattened]
+
+
 def gaussian_nll(y_true: np.ndarray, mean: np.ndarray, std: np.ndarray, eps: float = 1e-6) -> float:
-    yt = np.asarray(y_true, dtype=np.float64).reshape(-1)
-    mu = np.asarray(mean, dtype=np.float64).reshape(-1)
-    sigma = np.maximum(np.asarray(std, dtype=np.float64).reshape(-1), eps)
+    yt, mu, sigma = _paired_valid_arrays(y_true, mean, std)
+    if yt.size == 0:
+        return float("nan")
+    sigma = np.maximum(sigma, eps)
     nll = 0.5 * np.log(2.0 * np.pi * sigma**2) + ((yt - mu) ** 2) / (2.0 * sigma**2)
     return float(np.mean(nll))
 
 
 def picp_mpiw(y_true: np.ndarray, mean: np.ndarray, std: np.ndarray, level: float) -> Tuple[float, float]:
-    yt = np.asarray(y_true, dtype=np.float64).reshape(-1)
-    mu = np.asarray(mean, dtype=np.float64).reshape(-1)
-    sigma = np.asarray(std, dtype=np.float64).reshape(-1)
+    yt, mu, sigma = _paired_valid_arrays(y_true, mean, std)
+    if yt.size == 0:
+        return float("nan"), float("nan")
 
     z_lookup = {
         0.80: 1.2815515655446004,
@@ -70,6 +79,9 @@ def interval_calibration_error(curve: Dict[str, List[float]]) -> float:
 
 def sharpness(std: np.ndarray) -> float:
     sigma = np.asarray(std, dtype=np.float64).reshape(-1)
+    sigma = sigma[np.isfinite(sigma)]
+    if sigma.size == 0:
+        return float("nan")
     return float(np.mean(np.maximum(sigma, 1e-8)))
 
 

@@ -24,6 +24,14 @@ def _flatten(a: np.ndarray) -> np.ndarray:
     return np.asarray(a, dtype=np.float64).reshape(-1)
 
 
+def _paired_valid_arrays(*arrays: np.ndarray) -> list[np.ndarray]:
+    flattened = [_flatten(array) for array in arrays]
+    valid = np.ones_like(flattened[0], dtype=bool)
+    for array in flattened:
+        valid &= np.isfinite(array)
+    return [array[valid] for array in flattened]
+
+
 def _safe_div(num: float, den: float) -> float:
     if den == 0:
         return float("nan")
@@ -31,8 +39,9 @@ def _safe_div(num: float, den: float) -> float:
 
 
 def _corr(a: np.ndarray, b: np.ndarray) -> float:
-    a = _flatten(a)
-    b = _flatten(b)
+    a, b = _paired_valid_arrays(a, b)
+    if a.size == 0:
+        return float("nan")
     std_a = float(np.std(a))
     std_b = float(np.std(b))
     if std_a == 0.0 or std_b == 0.0:
@@ -41,8 +50,9 @@ def _corr(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> BenchmarkResult:
-    yt = _flatten(y_true)
-    yp = _flatten(y_pred)
+    yt, yp = _paired_valid_arrays(y_true, y_pred)
+    if yt.size == 0:
+        return BenchmarkResult(model="", rmse=float("nan"), mae=float("nan"), r2=float("nan"), bias=float("nan"), nse=float("nan"), kge=float("nan"))
 
     diff = yp - yt
     mse = float(np.mean(diff**2))
@@ -76,16 +86,27 @@ def bootstrap_mae_delta(
     y_candidate: np.ndarray,
     n_boot: int = 2000,
     seed: int = 42,
+    max_points: int = 100000,
 ) -> Dict[str, float]:
-    yt = _flatten(y_true)
-    yb = _flatten(y_baseline)
-    yc = _flatten(y_candidate)
+    yt, yb, yc = _paired_valid_arrays(y_true, y_baseline, y_candidate)
+    if yt.size == 0:
+        return {
+            "delta_mae_mean": float("nan"),
+            "delta_mae_ci_low": float("nan"),
+            "delta_mae_ci_high": float("nan"),
+            "p_value_two_sided": float("nan"),
+        }
 
     base_err = np.abs(yb - yt)
     cand_err = np.abs(yc - yt)
 
     rng = np.random.default_rng(seed)
     n = yt.shape[0]
+    if n > max_points:
+        subset = rng.choice(n, size=max_points, replace=False)
+        base_err = base_err[subset]
+        cand_err = cand_err[subset]
+        n = max_points
     deltas = np.empty(n_boot, dtype=np.float64)
     for i in range(n_boot):
         idx = rng.integers(0, n, size=n)
@@ -108,13 +129,24 @@ def bootstrap_corr_delta(
     y_candidate: np.ndarray,
     n_boot: int = 2000,
     seed: int = 42,
+    max_points: int = 100000,
 ) -> Dict[str, float]:
-    yt = _flatten(y_true)
-    yb = _flatten(y_baseline)
-    yc = _flatten(y_candidate)
+    yt, yb, yc = _paired_valid_arrays(y_true, y_baseline, y_candidate)
+    if yt.size == 0:
+        return {
+            "delta_corr_mean": float("nan"),
+            "delta_corr_ci_low": float("nan"),
+            "delta_corr_ci_high": float("nan"),
+        }
 
     rng = np.random.default_rng(seed + 17)
     n = yt.shape[0]
+    if n > max_points:
+        subset = rng.choice(n, size=max_points, replace=False)
+        yt = yt[subset]
+        yb = yb[subset]
+        yc = yc[subset]
+        n = max_points
     deltas = np.empty(n_boot, dtype=np.float64)
     for i in range(n_boot):
         idx = rng.integers(0, n, size=n)
