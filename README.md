@@ -4,7 +4,7 @@ GAN-DANet for spatial downscaling of GRACE terrestrial water storage anomalies (
 
 ## Current development status
 
-The cleaned and expanded v2 codebase is being prepared in the private repository `Aster32/GAN-DANet_v2` while manuscript and reviewer-facing artifacts are finalized. The private staging work covers the OC-PG-HMRD/PC-GAN product pipeline, reviewer protocol tooling, revision experiment utilities, tests, upload-safe ignore rules, and minimal project documentation.
+The cleaned and expanded v2 codebase is being prepared in the private repository [Aster32/GAN-DANet_v2](https://github.com/Aster32/GAN-DANet_v2) while manuscript and reviewer-facing artifacts are finalized. Access to that repository requires permission from the owner. The private staging work covers the OC-PG-HMRD/PC-GAN product pipeline, reviewer protocol tooling, revision experiment utilities, tests, upload-safe ignore rules, and minimal project documentation.
 
 This public repository remains the stable public landing page for now. Full source synchronization to the public repository is intentionally deferred until the private review and staging pass is complete. Large datasets, model checkpoints, generated figures, manuscript binaries, and other run artifacts are not planned for direct Git tracking.
 
